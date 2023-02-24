@@ -108,7 +108,6 @@ D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtili
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.csproj.GenerateResource.cache
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.csproj.CoreCompileInputs.cache
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.csproj.CopyComplete
-D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.ErrorDisplay.resources
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\bin\x86\Release\BMM – Matter Status Lock Update.exe.config
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\bin\x86\Release\BMM – Matter Status Lock Update.exe.manifest
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\bin\x86\Release\BMM – Matter Status Lock Update.application

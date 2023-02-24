@@ -31,7 +31,7 @@ namespace JurisUtilityBase
         public string JurisDbName { get; set; }
 
         public string JBillsDbName { get; set; }
-        private List<ErrorLog> errorList = new List<ErrorLog>();
+
 
 
 
@@ -142,49 +142,100 @@ namespace JurisUtilityBase
                 statusValue = this.comboBoxStatus.GetItemText(this.comboBoxStatus.SelectedItem).Split(' ')[0];
             if (passesValidation())
             {
+                //used to hold matter details that cannot be closed
+                string sql = @"create table ##TempBals 
+                                (Client varchar(12),
+                                Matter varchar(12), 
+                                PpdBalance decimal(15,2), 
+                                WIPFees decimal(15,2), 
+                                WIPExpense decimal(15,2), 
+                                UnpostedTime int, 
+                                UnpostedExpense int,
+                                UnpostedVouchers int, 
+                                OpenVouchers int, 
+                                OpenBills int,
+                                ARBalance decimal(15,2),
+                                TrustBalance decimal(15,2),
+                                ReadytoClose int)";
+                _jurisUtility.ExecuteNonQuery(0, sql);
                 //update matters one at a time
-                errorList.Clear();
                 if (radioButtonAllMats.Checked)
                 {
                     //get all matters
-                    string sql = "select matsysnbr, dbo.jfn_FormatMatterCode(MatCode) from matter inner join client on clisysnbr = matclinbr where dbo.jfn_FormatClientCode(clicode) = '" + singleClient + "'";
+                    sql = "select matsysnbr, dbo.jfn_FormatMatterCode(MatCode) from matter inner join client on clisysnbr = matclinbr where dbo.jfn_FormatClientCode(clicode) = '" + singleClient + "'";
                     DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
                     List<int> mats = new List<int>();
                     foreach (DataRow dd in ds.Tables[0].Rows)
-                        errorList.Add(processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString()));
+                    {
+                        if (statusValue.Equals("C")) //they are trying to close a matter
+                        {
+                            //see if its in the readytoclose = 0 category
+                            checkForBalances(Convert.ToInt32(dd[0].ToString()));
+                            sql = "select ReadytoClose from ##TempBals where Matter = '" + dd[1].ToString() + "'";
+                            DataSet qq = _jurisUtility.RecordsetFromSQL(sql);
+                            foreach (DataRow ii in qq.Tables[0].Rows)
+                            {
+                                if (ii[0].ToString().Equals("1"))//we can close it
+                                    processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
+                            }
+                        }
+                        else
+                            processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
+                    }
                 }
                 else
                 {
                     foreach (DataGridViewRow r in dataGridView1.SelectedRows)
                     {
-                        //go through each matter, get its sysnbr and test if it has a balance
                         string value1 = r.Cells[0].Value.ToString();
                         string currentMat = value1.Split(' ')[0];
                         int matsys = getMatSysNbr(singleClient, currentMat);
-                        errorList.Add(processSingleMatter(matsys, currentMat));
+                        if (statusValue.Equals("C")) //they are trying to close a matter
+                        {
+                            //see if its in the readytoclose = 0 category
+
+                            checkForBalances(matsys);
+                            sql = "select ReadytoClose from ##TempBals where Matter = '" + currentMat + "'";
+                            DataSet zz = _jurisUtility.RecordsetFromSQL(sql);
+                            foreach (DataRow ii in zz.Tables[0].Rows)
+                            {
+                                if (ii[0].ToString().Equals("1"))//we can close it
+                                    processSingleMatter(matsys, currentMat);
+                            }
+                        }
+                        else
+                            processSingleMatter(matsys, currentMat);
                     }
                 }
-                string allErrors = "";
-                foreach (ErrorLog xx in errorList)
-                    allErrors = allErrors + xx.message;
 
-                if (string.IsNullOrEmpty(allErrors))
+                int count = 0;
+                sql = "select count(*) as cd from ##TempBals where ReadytoClose = 0";
+                DataSet uh = _jurisUtility.RecordsetFromSQL(sql);
+
+                foreach (DataRow rg in uh.Tables[0].Rows)
+                {
+                    count = Convert.ToInt32(rg[0].ToString());
+                }
+
+
+
+
+                if (count == 0)
                     MessageBox.Show("Process completed without error", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 else
                 {
-                    DialogResult dr = MessageBox.Show("Some matters were not able to be updated. Show details?", "Runtime Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                    DialogResult dr = MessageBox.Show("Some matters have balances and cannot be closed. Show details?", "Runtime Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
                     if (dr == DialogResult.Yes)
                     {
-                        string message = "";
-                        foreach (ErrorLog el in errorList)
-                            message = message + el.message;
-                        ErrorDisplay ed = new ErrorDisplay(message);
-                        ed.Show();
+                        sql = "select * from ##TempBals where ReadytoClose = 0";
+                        DataSet gg = _jurisUtility.RecordsetFromSQL(sql);
 
+                        ReportDisplay rd = new ReportDisplay(gg.Tables[0]);
+                        rd.Show();
                     }
-                    errorList.Clear();
                 }
-
+                sql = "drop table ##TempBals";
+                _jurisUtility.ExecuteNonQuery(0, sql);
             }
         }
 
@@ -214,45 +265,15 @@ namespace JurisUtilityBase
                     MessageBox.Show("At least 1 matter must be chosen when using \"Specific Matters from Client\"", "Selection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
-                //see is any of those matters have balances if they want to close them
-                if (statusValue.Equals("C"))
-                {
-                    foreach (DataGridViewRow r in dataGridView1.SelectedRows)
-                    {
-                        //go through each matter, get its sysnbr and test if it has a balance
-                        string value1 = r.Cells[0].Value.ToString();
-                        string currentMat = value1.Split(' ')[0];
-                        int matsys = getMatSysNbr(singleClient, currentMat);
-                        checkForBalances(matsys);
-                    }
-                    //show error log then clear it
-                    if (errorList.Count > 0) //we have at least 1 matter with a balance
-                    {
-                        DialogResult dr = MessageBox.Show("At least 1 Matter has a balance and cannot be closed. Show details?", "Selection Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
-                        if (dr == DialogResult.Yes)
-                        {
-                            string message = "";
-                            foreach (ErrorLog el in errorList)
-                                message = message + el.message;
-                            ErrorDisplay ed = new ErrorDisplay(message);
-                            ed.Show();
-                        }
-                        return false;
-                    }
-                    errorList.Clear();
-                }
+
             }
             return true;
         }
 
 
-        private ErrorLog processSingleMatter(int matsys, String currentMat)
+        private void processSingleMatter(int matsys, String currentMat)
         {
             string sql = "";
-            ErrorLog el = new ErrorLog();
-            el.client = "";
-            el.matter = "";
-            el.message = "";
             //get current status to see what we need to do
             sql = "select matstatusflag from matter where matsysnbr = " + matsys.ToString();
             DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
@@ -268,8 +289,6 @@ namespace JurisUtilityBase
                         sql = "update matter set MatLockFlag = " + lockValue + " where matsysnbr = " + matsys.ToString();
                         _jurisUtility.ExecuteNonQuery(0, sql);
                     }
-                    else
-                        el.message = "Matter: " + currentMat + " cannot have its lock changed as it is closed and closed matters must have a lock code of 3" + "\r" + "\n";
                     break;
                 case "O"://see if the old status was C 
                     if (oldStat.Equals("C") || oldStat.Equals("P"))
@@ -315,7 +334,6 @@ namespace JurisUtilityBase
 
                 break;
             }
-            return el;
         }
 
         private int getMatSysNbr(string clicode, string matcode)
@@ -338,58 +356,42 @@ namespace JurisUtilityBase
         }
 
 
-        private void checkForBalances(int matsysnbr) //false means some balance exists
+        private void checkForBalances(int matsysnbr) 
         {
-            string sql = "";
-            sql =
-                "  select dbo.jfn_FormatClientCode(clicode) as clicode, dbo.jfn_FormatMatterCode(MatCode) as matcode, cast(sum(ppd) as money) as ppd, cast(sum(UT) as money) as UT, cast(sum(UE) as money) as UE, cast(sum(AR) as money) as AR, cast(sum(Trust) as money) as Trust " +
-                "from( " +
-                "select matsysnbr as matsys, MatPPDBalance as ppd, 0 as UT, 0 as UE, 0 as AR, 0 as Trust " +
-                  " from matter " +
-                  " where MatPPDBalance <> 0 and matsysnbr = " + matsysnbr +
-                  " union all " +
-                   " select utmatter as matsys, 0 as ppd, sum(utamount) as UT, 0 as UE, 0 as AR, 0 as Trust " +
-                  " from unbilledtime where utmatter = " + matsysnbr +
-                  " group by utmatter " +
-                  " having sum(utamount) <> 0 " +
-                  " union all " +
-                  " select uematter as matsys, 0 as ppd, 0 as UT, sum(ueamount) as UE, 0 as AR, 0 as Trust " +
-                 " from unbilledexpense where uematter = " + matsysnbr +
-                  "  group by uematter " +
-                " having sum(ueamount) <> 0 " +
-                 " union all " +
-                "  select armmatter as matsys, 0 as ppd, 0 as UT, 0 as UE, sum(ARMBalDue) as AR, 0 as Trust " +
-                "  from armatalloc where armmatter = " + matsysnbr +
-                "  group by armmatter " +
-                "  having sum(ARMBalDue) <> 0 " +
-                "  union all " +
-                "  select tamatter as matsys, 0 as ppd, 0 as UT, 0 as UE, 0 as AR, sum(TABalance) as Trust " +
-                 " from trustaccount where tamatter = " + matsysnbr +
-                "  group by tamatter " +
-                "  having sum(TABalance) <> 0) hhg " +
-                " inner join matter on hhg.matsys = matsysnbr " +
-                " inner join client on clisysnbr = matclinbr " +
-                "  group by dbo.jfn_FormatClientCode(clicode), dbo.jfn_FormatMatterCode(MatCode) " +
-                "  having sum(ppd) <> 0 or sum(UT)  <> 0 or sum(UE)  <> 0 or sum(AR)  <> 0 or sum(Trust) <> 0";
-            int woot = 0;
-            DataSet ds = new DataSet();
-            ds = _jurisUtility.RecordsetFromSQL(sql);
-            if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
-                woot++; //not used
-            else
-            {
-                ErrorLog er = new ErrorLog();
-                er.client = ds.Tables[0].Rows[0][0].ToString();
-                er.matter = ds.Tables[0].Rows[0][1].ToString();
-                er.message = "Cannot close matter " + er.client + "/" + er.matter + " because balance(s) exist. See below for more detail: \r\n" +
-                    "Prepaid Balance: " + ds.Tables[0].Rows[0][2].ToString() + "\r\n" +
-                    "Unbilled Time Balance: " + ds.Tables[0].Rows[0][3].ToString() + "\r\n" +
-                    "Unbilled Expense Balance: " + ds.Tables[0].Rows[0][4].ToString() + "\r\n" +
-                    "A/R Balance: " + ds.Tables[0].Rows[0][5].ToString() + "\r\n" +
-                    "Trust Balance: " + ds.Tables[0].Rows[0][6].ToString() + "\r\n" + "\r\n"
-                    + "------------------------------------------------" + "\r\n" + "\r\n";
-                errorList.Add(er);
-            }
+            //put all of them in a table and see if any are ReadyToClose = 0
+            string sql = @"insert into ##TempBals
+                            (Client, Matter, PpdBalance,WIPFees,WIPExpense, UnpostedTime,UnpostedExpense,UnpostedVouchers,
+                            OpenVouchers, OpenBills,ARBalance,TrustBalance,ReadytoClose )         
+                        Select dbo.jfn_FormatClientCode(clicode) as Client, dbo.jfn_FormatMatterCode(MatCode) as Matter, ppd as PpdBalance, unbilledtime as WIPFees, 
+                          unbilledexp as WIPExpense, unpostedtime as UnpostedTime, unpostedexp as UnpostedExpense, unpostedvouchers as UnpostedVouchers, openvouchers as OpenVouchers, 
+                  openbills as OpenBills,  ar as ARBalance,  trust as TrustBalance,
+                    case when wip <> 0.00 or UnbilledTime <> 0 or UnbilledExp <> 0 or UnpostedTime <> 0 or UnpostedExp <> 0 or UnpostedVouchers <> 0 or OpenVouchers <> 0 or openbills <> 0 or AR <> 0.00 or PPD <> 0.00 or trust <> 0.00 then 0 else 1 end as ReadytoClose 
+                    from matter
+                    inner join client on matclinbr=clisysnbr
+                    inner join billto on matbillto=billtosysnbr
+                    inner join employee on empsysnbr=billtobillingatty
+                    inner join (select morigmat, max(case when ot=1 then empinitials else '' end) + max(case when ot=2 then  ' ' +  empinitials else '' end) + 
+                    max(case when ot=3 then   ' ' +  empinitials else '' end) +  max(case when ot=4 then   ' ' +  empinitials else '' end) + max(case when ot=5 then   ' ' +  empinitials else '' end) as OrigTkpr
+                    from (select morigmat, empinitials, rank() over (Partition by morigmat order by empinitials) as OT
+                    from matorigatty inner join employee on morigatty=empsysnbr)MO
+                    group by morigmat)MO on matsysnbr=morigmat
+                    inner join (select matsysnbr as matsys, sum(unbilledtime) as UnbilledTime, sum(UnbilledExp) as UnbilledExp, sum(unpostedtime) as UnpostedTime, sum(unpostedexp) as UnpostedExp,
+                    sum(unpostedvouchers) as UnpostedVouchers, sum(openVouchers) as OpenVouchers, sum(openBills) as OpenBills, sum(wipbalance) as WIp, sum(arbalance) as AR, sum(ppdbalance) as PPD, sum(trustbalance) as trust
+                    from (select matsysnbr, 0 as UnbilledTime, 0 as UnbilledExp, 0 as UnpostedTime, 0 as UnpostedExp, 0 as UnpostedVouchers, 0 as OpenVouchers,0 as OpenBills, 0 as WIPBalance,0 as ARBalance, matppdbalance as PPDBalance, 0 as TrustBalance
+                    from matter
+                    union all select armmatter, 0, 0, 0, 0, 0, 0, count(armbillnbr) as OpenBills,  0 as WIp, sum(armbaldue) as ARBalance, 0 as PPD, 0 as Trust from armatalloc where armbaldue<>0 group by armmatter
+                    union all select utmatter, sum(utamount), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 from unbilledtime group by utmatter union all
+                    select uematter, 0, sum(ueamount), 0,0,0,0,0,0, 0, 0, 0 from unbilledexpense group by uematter
+                    union all  select tbdmatter, 0,0, count(tbdid),0,0,0,0,0,0,0,0 from timebatchdetail  where tbdposted='N' and tbdid not in (select tbdid from timeentrylink) group by tbdmatter
+                    union all  select mattersysnbr, 0,0, count(entryid),0,0,0,0,0,0,0,0 from timeentry where entrystatus<=6 group by mattersysnbr
+                    union all  select ebdmatter, 0,0, 0,count(ebdid),0,0,0,0,0,0,0 from expbatchdetail where ebdposted='N' and ebdid not in (select ebdid from ExpenseEntryLink) group by ebdmatter
+                    union all  select mattersysnbr, 0,0, 0,count(entryid),0,0,0,0,0,0,0 from expenseentry where entrystatus<=6  group by mattersysnbr
+                    union all  select vbmmatter, 0,0, 0,0,count(vbdid) as VchCount,0,0,0,0,0,0  from voucherbatchmatdist inner join voucherbatchdetail on vbdbatch=vbmbatch and vbdrecnbr=vbmrecnbr where vbdposted='N' group by vbmmatter
+                    union all  select vmmatter,0,0, 0,0,0, count(vmvoucher) as Vch,0,0,0,0,0 from voucher inner join vouchermatdist on vmvoucher=vchvouchernbr where vchstatus='O' and vmamount-vmamountpaid<>0 group by vmmatter 
+                    union all  select tlmatter,0,0,0,0,0,0,0,0,0,0, sum(tlamount) from trustledger group by tlmatter) Mat group by matsysnbr)MatList on matsysnbr=matsys
+			        where MatStatusFlag  not in ('P', 'C') and MatSysNbr = " + matsysnbr.ToString();
+
+            _jurisUtility.ExecuteSql(0, sql);
         }
 
 

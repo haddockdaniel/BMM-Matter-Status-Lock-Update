@@ -13,7 +13,7 @@ namespace JurisUtilityBase
         public int matsys { get; set; }
         public string remarks { get; set; }
 
-        public string branch { get; set; }
+        public bool isError { get; set; }
 
         public string name { get; set; }
 

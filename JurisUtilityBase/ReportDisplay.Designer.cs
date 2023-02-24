@@ -31,7 +31,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ReportDisplay));
             this.buttonPrint = new System.Windows.Forms.Button();
             this.buttonBack = new System.Windows.Forms.Button();
-            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
             // buttonPrint
@@ -43,7 +44,7 @@
             this.buttonPrint.Name = "buttonPrint";
             this.buttonPrint.Size = new System.Drawing.Size(148, 38);
             this.buttonPrint.TabIndex = 11;
-            this.buttonPrint.Text = "Copy To Clipboard";
+            this.buttonPrint.Text = "Open in Excel";
             this.buttonPrint.UseVisualStyleBackColor = false;
             this.buttonPrint.Click += new System.EventHandler(this.buttonPrint_Click);
             // 
@@ -60,25 +61,26 @@
             this.buttonBack.UseVisualStyleBackColor = false;
             this.buttonBack.Click += new System.EventHandler(this.buttonBack_Click);
             // 
-            // richTextBox1
+            // dataGridView1
             // 
-            this.richTextBox1.Location = new System.Drawing.Point(12, 12);
-            this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.Size = new System.Drawing.Size(1006, 337);
-            this.richTextBox1.TabIndex = 12;
-            this.richTextBox1.Text = "";
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(12, 12);
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.Size = new System.Drawing.Size(1006, 341);
+            this.dataGridView1.TabIndex = 12;
             // 
             // ReportDisplay
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1030, 420);
-            this.Controls.Add(this.richTextBox1);
+            this.Controls.Add(this.dataGridView1);
             this.Controls.Add(this.buttonPrint);
             this.Controls.Add(this.buttonBack);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ReportDisplay";
             this.Text = "Report Display";
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -87,6 +89,6 @@
 
         private System.Windows.Forms.Button buttonPrint;
         private System.Windows.Forms.Button buttonBack;
-        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.DataGridView dataGridView1;
     }
 }

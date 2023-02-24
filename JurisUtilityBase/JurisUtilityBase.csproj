@@ -163,19 +163,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CliMat.cs" />
-    <Compile Include="ErrorDisplay.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ErrorDisplay.Designer.cs">
-      <DependentUpon>ErrorDisplay.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ErrorLog.cs" />
     <Compile Include="JurisUtility.cs" />
-    <Compile Include="PrinterDialog.cs">
+    <Compile Include="MatterSelect.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="PrinterDialog.Designer.cs">
-      <DependentUpon>PrinterDialog.cs</DependentUpon>
+    <Compile Include="MatterSelect.Designer.cs">
+      <DependentUpon>MatterSelect.cs</DependentUpon>
     </Compile>
     <Compile Include="ReportDisplay.cs">
       <SubType>Form</SubType>
@@ -197,11 +190,8 @@
     <Compile Include="SplashScreen.Designer.cs">
       <DependentUpon>SplashScreen.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="ErrorDisplay.resx">
-      <DependentUpon>ErrorDisplay.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PrinterDialog.resx">
-      <DependentUpon>PrinterDialog.cs</DependentUpon>
+    <EmbeddedResource Include="MatterSelect.resx">
+      <DependentUpon>MatterSelect.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ReportDisplay.resx">
       <DependentUpon>ReportDisplay.cs</DependentUpon>
