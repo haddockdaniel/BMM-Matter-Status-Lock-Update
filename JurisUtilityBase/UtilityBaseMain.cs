@@ -144,14 +144,25 @@ namespace JurisUtilityBase
             {
                 //update matters one at a time
                 errorList.Clear();
-                
-                foreach (DataGridViewRow r in dataGridView1.SelectedRows)
+                if (radioButtonAllMats.Checked)
                 {
-                    //go through each matter, get its sysnbr and test if it has a balance
-                    string value1 = r.Cells[0].Value.ToString();
-                    string currentMat = value1.Split(' ')[0];
-                    int matsys = getMatSysNbr(singleClient, currentMat);
-                    errorList.Add(processSingleMatter(matsys, currentMat));
+                    //get all matters
+                    string sql = "select matsysnbr, dbo.jfn_FormatMatterCode(MatCode) from matter inner join client on clisysnbr = matclinbr where dbo.jfn_FormatClientCode(clicode) = '" + singleClient + "'";
+                    DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
+                    List<int> mats = new List<int>();
+                    foreach (DataRow dd in ds.Tables[0].Rows)
+                        errorList.Add(processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString()));
+                }
+                else
+                {
+                    foreach (DataGridViewRow r in dataGridView1.SelectedRows)
+                    {
+                        //go through each matter, get its sysnbr and test if it has a balance
+                        string value1 = r.Cells[0].Value.ToString();
+                        string currentMat = value1.Split(' ')[0];
+                        int matsys = getMatSysNbr(singleClient, currentMat);
+                        errorList.Add(processSingleMatter(matsys, currentMat));
+                    }
                 }
                 string allErrors = "";
                 foreach (ErrorLog xx in errorList)
