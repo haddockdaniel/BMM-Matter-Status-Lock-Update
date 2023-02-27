@@ -137,13 +137,15 @@ namespace JurisUtilityBase
 
         private void DoDaFix()
         {
-            //get selections from status and lock
+            try
+            {
+                //get selections from status and lock
                 lockValue = this.comboBoxLock.GetItemText(this.comboBoxLock.SelectedItem).Split(' ')[0];
                 statusValue = this.comboBoxStatus.GetItemText(this.comboBoxStatus.SelectedItem).Split(' ')[0];
-            if (passesValidation())
-            {
-                //used to hold matter details that cannot be closed
-                string sql = @"create table ##TempBals 
+                if (passesValidation())
+                {
+                    //used to hold matter details that cannot be closed
+                    string sql = @"create table ##TempBals 
                                 (Client varchar(12),
                                 Matter varchar(12), 
                                 PpdBalance decimal(15,2), 
@@ -157,86 +159,92 @@ namespace JurisUtilityBase
                                 ARBalance decimal(15,2),
                                 TrustBalance decimal(15,2),
                                 ReadytoClose int)";
-                _jurisUtility.ExecuteNonQuery(0, sql);
-                //update matters one at a time
-                if (radioButtonAllMats.Checked)
-                {
-                    //get all matters
-                    sql = "select matsysnbr, dbo.jfn_FormatMatterCode(MatCode) from matter inner join client on clisysnbr = matclinbr where dbo.jfn_FormatClientCode(clicode) = '" + singleClient + "'";
-                    DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
-                    List<int> mats = new List<int>();
-                    foreach (DataRow dd in ds.Tables[0].Rows)
+                    _jurisUtility.ExecuteNonQuery(0, sql);
+                    //update matters one at a time
+                    if (radioButtonAllMats.Checked)
                     {
-                        if (statusValue.Equals("C")) //they are trying to close a matter
+                        //get all matters
+                        sql = "select matsysnbr, dbo.jfn_FormatMatterCode(MatCode) from matter inner join client on clisysnbr = matclinbr where dbo.jfn_FormatClientCode(clicode) = '" + singleClient + "'";
+                        DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
+                        List<int> mats = new List<int>();
+                        foreach (DataRow dd in ds.Tables[0].Rows)
                         {
-                            //see if its in the readytoclose = 0 category
-                            checkForBalances(Convert.ToInt32(dd[0].ToString()));
-                            sql = "select ReadytoClose from ##TempBals where Matter = '" + dd[1].ToString() + "'";
-                            DataSet qq = _jurisUtility.RecordsetFromSQL(sql);
-                            foreach (DataRow ii in qq.Tables[0].Rows)
+                            if (statusValue.Equals("C")) //they are trying to close a matter
                             {
-                                if (ii[0].ToString().Equals("1"))//we can close it
-                                    processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
+                                //see if its in the readytoclose = 0 category
+                                checkForBalances(Convert.ToInt32(dd[0].ToString()));
+                                sql = "select ReadytoClose from ##TempBals where Matter = '" + dd[1].ToString() + "'";
+                                DataSet qq = _jurisUtility.RecordsetFromSQL(sql);
+                                foreach (DataRow ii in qq.Tables[0].Rows)
+                                {
+                                    if (ii[0].ToString().Equals("1"))//we can close it
+                                        processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
+                                }
                             }
+                            else
+                                processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
                         }
-                        else
-                            processSingleMatter(Convert.ToInt32(dd[0].ToString()), dd[1].ToString());
                     }
-                }
-                else
-                {
-                    foreach (DataGridViewRow r in dataGridView1.SelectedRows)
+                    else
                     {
-                        string value1 = r.Cells[0].Value.ToString();
-                        string currentMat = value1.Split(' ')[0];
-                        int matsys = getMatSysNbr(singleClient, currentMat);
-                        if (statusValue.Equals("C")) //they are trying to close a matter
+                        foreach (DataGridViewRow r in dataGridView1.SelectedRows)
                         {
-                            //see if its in the readytoclose = 0 category
-
-                            checkForBalances(matsys);
-                            sql = "select ReadytoClose from ##TempBals where Matter = '" + currentMat + "'";
-                            DataSet zz = _jurisUtility.RecordsetFromSQL(sql);
-                            foreach (DataRow ii in zz.Tables[0].Rows)
+                            try
                             {
-                                if (ii[0].ToString().Equals("1"))//we can close it
+                                string value1 = r.Cells[0].Value.ToString();
+                                string currentMat = value1.Split(' ')[0];
+                                int matsys = getMatSysNbr(singleClient, currentMat);
+                                if (statusValue.Equals("C")) //they are trying to close a matter
+                                {
+                                    //see if its in the readytoclose = 0 category
+
+                                    checkForBalances(matsys);
+                                    sql = "select ReadytoClose from ##TempBals where Matter = '" + currentMat + "'";
+                                    DataSet zz = _jurisUtility.RecordsetFromSQL(sql);
+                                    foreach (DataRow ii in zz.Tables[0].Rows)
+                                    {
+                                        if (ii[0].ToString().Equals("1"))//we can close it
+                                            processSingleMatter(matsys, currentMat);
+                                    }
+                                }
+                                else
                                     processSingleMatter(matsys, currentMat);
                             }
+                            catch (Exception cc) { MessageBox.Show(cc.Message); }
                         }
-                        else
-                            processSingleMatter(matsys, currentMat);
                     }
-                }
 
-                int count = 0;
-                sql = "select count(*) as cd from ##TempBals where ReadytoClose = 0";
-                DataSet uh = _jurisUtility.RecordsetFromSQL(sql);
+                    int count = 0;
+                    sql = "select count(*) as cd from ##TempBals where ReadytoClose = 0";
+                    DataSet uh = _jurisUtility.RecordsetFromSQL(sql);
 
-                foreach (DataRow rg in uh.Tables[0].Rows)
-                {
-                    count = Convert.ToInt32(rg[0].ToString());
-                }
-
-
-
-
-                if (count == 0)
-                    MessageBox.Show("Process completed without error", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                else
-                {
-                    DialogResult dr = MessageBox.Show("Some matters have balances and cannot be closed. Show details?", "Runtime Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
-                    if (dr == DialogResult.Yes)
+                    foreach (DataRow rg in uh.Tables[0].Rows)
                     {
-                        sql = "select * from ##TempBals where ReadytoClose = 0";
-                        DataSet gg = _jurisUtility.RecordsetFromSQL(sql);
-
-                        ReportDisplay rd = new ReportDisplay(gg.Tables[0]);
-                        rd.Show();
+                        count = Convert.ToInt32(rg[0].ToString());
                     }
+
+
+
+
+                    if (count == 0)
+                        MessageBox.Show("Process completed without error", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    else
+                    {
+                        DialogResult dr = MessageBox.Show("Some matters have balances and cannot be closed. Show details?", "Runtime Error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                        if (dr == DialogResult.Yes)
+                        {
+                            sql = "select * from ##TempBals where ReadytoClose = 0";
+                            DataSet gg = _jurisUtility.RecordsetFromSQL(sql);
+
+                            ReportDisplay rd = new ReportDisplay(gg.Tables[0]);
+                            rd.Show();
+                        }
+                    }
+                    sql = "drop table ##TempBals";
+                    _jurisUtility.ExecuteNonQuery(0, sql);
                 }
-                sql = "drop table ##TempBals";
-                _jurisUtility.ExecuteNonQuery(0, sql);
             }
+            catch (Exception bb) { MessageBox.Show(bb.Message); }
         }
 
 
@@ -550,24 +558,87 @@ namespace JurisUtilityBase
         {
             if (cbClient.SelectedIndex > 0)
                 singleClient = this.cbClient.GetItemText(this.cbClient.SelectedItem).Split(' ')[0];
-            dataGridView1.DataSource = null;
-            string sql = "select dbo.jfn_FormatMatterCode(matcode) + '    ' + matreportingname as Matter from matter inner join client on clisysnbr = matclinbr where dbo.jfn_formatclientcode(clicode) = '" + singleClient + "'";
-            DataSet ds = _jurisUtility.RecordsetFromSQL(sql);
-            dataGridView1.DataSource = ds.Tables[0];
-            dataGridView1.Columns[0].Width = 280;
+
         }
 
  
 
         private void radioButtonAllMats_CheckedChanged(object sender, EventArgs e)
         {
-            dataGridView1.Visible = radioButtonSelectMats.Checked;
         }
+
+        private int numOfMatters = 0;
 
         private void radioButtonSelectMats_CheckedChanged(object sender, EventArgs e)
         {
-            dataGridView1.Visible = radioButtonSelectMats.Checked;
+            try
+            {
+                if (radioButtonSelectMats.Checked)//show matter select dialog, see which matters they selected (and the number of them) and add to hidden dgv on this form for processing
+                {
+                    MatterSelect ms = new MatterSelect(singleClient, _jurisUtility);
+                    ms.ShowDialog();
+                    try
+                    {
+                        if (ms.numOfRows != 0)
+                        {
+                            numOfMatters = ms.numOfRows;
+                            CopyDataGridView(ms.dgv_copy);
+                            dataGridView1.SelectAll();
+                            //MessageBox.Show(dataGridView1.SelectedRows.Count.ToString() + " : " + dataGridView1.Rows.Count.ToString() + " : " + numOfMatters.ToString());
+                        }
+                        else
+                        {
+                            MessageBox.Show("At least 1 matter must be chosen when using \"Specific Matters from Client\"", "Selection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            radioButtonAllMats.Checked = true;
+                        }
+                    }
+                    catch (Exception ss) { MessageBox.Show(ss.Message); }
+                    ms.Close();
+
+                }
+            }catch (Exception vv) { MessageBox.Show(vv.Message); }
         }
+
+
+            private void CopyDataGridView(DataGridView dgv_org)
+        {
+            try
+            {
+                if (dataGridView1.Columns.Count == 0)
+                {
+                    foreach (DataGridViewColumn dgvc in dgv_org.Columns)
+                    {
+                        dataGridView1.Columns.Add(dgvc.Clone() as DataGridViewColumn);
+                    }
+                }
+
+                DataGridViewRow row = new DataGridViewRow();
+
+                for (int i = 0; i < dgv_org.Rows.Count; i++)
+                {
+                    row = (DataGridViewRow)dgv_org.Rows[i].Clone();
+                    int intColIndex = 0;
+                    foreach (DataGridViewCell cell in dgv_org.Rows[i].Cells)
+                    {
+                        row.Cells[intColIndex].Value = cell.Value;
+                        intColIndex++;
+                    }
+                    dataGridView1.Rows.Add(row);
+                }
+                dataGridView1.AllowUserToAddRows = false;
+                dataGridView1.Refresh();
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("inner " + ex.Message);
+            }
+        }
+
+
+
+
+
 
         private void button1_Click_1(object sender, EventArgs e)
         {

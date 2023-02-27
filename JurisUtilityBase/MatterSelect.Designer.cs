@@ -38,9 +38,13 @@ namespace JurisUtilityBase
             // 
             // dataGridView1
             // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
             this.dataGridView1.Location = new System.Drawing.Point(12, 12);
             this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dataGridView1.Size = new System.Drawing.Size(308, 453);
             this.dataGridView1.TabIndex = 0;
             // 
@@ -55,6 +59,7 @@ namespace JurisUtilityBase
             this.buttonPrint.TabIndex = 13;
             this.buttonPrint.Text = "Next";
             this.buttonPrint.UseVisualStyleBackColor = false;
+            this.buttonPrint.Click += new System.EventHandler(this.buttonPrint_Click);
             // 
             // buttonBack
             // 
@@ -73,7 +78,7 @@ namespace JurisUtilityBase
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(340, 523);
+            this.ClientSize = new System.Drawing.Size(336, 523);
             this.Controls.Add(this.buttonPrint);
             this.Controls.Add(this.buttonBack);
             this.Controls.Add(this.dataGridView1);

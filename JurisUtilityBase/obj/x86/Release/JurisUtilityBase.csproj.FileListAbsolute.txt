@@ -100,7 +100,6 @@ D:\BMM – Matter Status Lock Update\JurisUtilityBase\bin\x86\Release\JurisStr22
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\bin\x86\Release\JurisSVR21.dll
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.csproj.AssemblyReference.cache
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.csproj.ResolveComReference.cache
-D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.PrinterDialog.resources
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.ReportDisplay.resources
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.UtilityBaseMain.resources
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.Properties.Resources.resources
@@ -117,3 +116,4 @@ D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\BMM – Ma
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\BMM – Matter Status Lock Update.application
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\BMM – Matter Status Lock Update.exe
 D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\BMM – Matter Status Lock Update.pdb
+D:\BMM – Matter Status Lock Update\JurisUtilityBase\obj\x86\Release\JurisUtilityBase.MatterSelect.resources
